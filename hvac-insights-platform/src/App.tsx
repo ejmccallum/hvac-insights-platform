@@ -1,10 +1,7 @@
+import AppLayout from "./components/layout/applayout";
+
 function App() {
-  return (
-    <div>
-      <h1>HVAC Insights Platform</h1>
-      <p>React application shell is ready.</p>
-    </div>
-  );
+  return <AppLayout />;
 }
 
 export default App;
