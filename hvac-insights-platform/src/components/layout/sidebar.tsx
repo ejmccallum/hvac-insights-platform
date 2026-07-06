@@ -13,20 +13,23 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import Typography from "@mui/material/Typography";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 
 const drawerWidth = 240;
 
 const navigationItems = [
-  { label: "Dashboard", icon: <DashboardIcon /> },
-  { label: "Reports", icon: <BarChartIcon /> },
-  { label: "Upload Data", icon: <UploadFileIcon /> },
-  { label: "Integrations", icon: <SyncIcon /> },
-  { label: "Customers", icon: <PeopleIcon /> },
-  { label: "Technicians", icon: <EngineeringIcon /> },
-  { label: "Settings", icon: <SettingsIcon /> },
+  { label: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
+  { label: "Reports", icon: <BarChartIcon />, path: "/reports" },
+  { label: "Upload Data", icon: <UploadFileIcon />, path: "/upload" },
+  { label: "Integrations", icon: <SyncIcon />, path: "/integrations" },
+  { label: "Customers", icon: <PeopleIcon />, path: "/customers" },
+  { label: "Technicians", icon: <EngineeringIcon />, path: "/technicians" },
+  { label: "Settings", icon: <SettingsIcon />, path: "/settings" },
 ];
 
 function Sidebar() {
+  const location = useLocation();
+
   return (
     <Drawer
       variant="permanent"
@@ -42,7 +45,7 @@ function Sidebar() {
       }}
     >
       <Box sx={{ p: 2 }}>
-        <Typography variant="h6"  sx={{ fontWeight: 700 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>
           HVAC Insights
         </Typography>
         <Typography variant="body2" sx={{ color: "#94a3b8" }}>
@@ -53,14 +56,35 @@ function Sidebar() {
       <Divider sx={{ borderColor: "#1e293b" }} />
 
       <List>
-        {navigationItems.map((item) => (
-          <ListItemButton key={item.label}>
-            <ListItemIcon sx={{ color: "#cbd5e1" }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText primary={item.label} />
-          </ListItemButton>
-        ))}
+        {navigationItems.map((item) => {
+          const selected = location.pathname === item.path;
+
+          return (
+            <ListItemButton
+              key={item.label}
+              component={RouterLink}
+              to={item.path}
+              selected={selected}
+              sx={{
+                color: "#ffffff",
+                "&.Mui-selected": {
+                  backgroundColor: "#1e293b",
+                },
+                "&.Mui-selected:hover": {
+                  backgroundColor: "#1e293b",
+                },
+                "&:hover": {
+                  backgroundColor: "#172554",
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: selected ? "#38bdf8" : "#cbd5e1" }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          );
+        })}
       </List>
     </Drawer>
   );

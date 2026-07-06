@@ -1,7 +1,8 @@
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
-import Header from "./header";
-import Sidebar from "./sidebar";
+import { Outlet } from "react-router-dom";
+import Header from "./Header";
+import Sidebar from "./Sidebar";
 
 const drawerWidth = 240;
 
@@ -22,11 +23,7 @@ function AppLayout() {
         }}
       >
         <Toolbar />
-
-        <Box>
-          <h1>Dashboard</h1>
-          <p>Main content area is ready.</p>
-        </Box>
+        <Outlet />
       </Box>
     </Box>
   );
