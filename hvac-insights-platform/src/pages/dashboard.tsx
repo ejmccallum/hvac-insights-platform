@@ -15,9 +15,93 @@ import Typography from "@mui/material/Typography";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../components/common/PageHeader";
 import StatCard from "../components/common/StatCard";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import axios from "axios";
+import { useEffect, useState } from "react";
+
+type ApiHealthResponse = {
+  status: string;
+  service: string;
+  message: string;
+  timestamp: string;
+};
+
+type DashboardSummaryResponse = {
+  totalRevenue: number;
+  serviceCalls: number;
+  averageRating: number;
+  openRecommendations: number;
+  lastUpdated: string;
+};
 
 function Dashboard() {
   const navigate = useNavigate();
+
+  const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">(
+    "checking"
+  );
+
+  const [apiMessage, setApiMessage] = useState("Checking API connection...");
+
+  const [dashboardSummary, setDashboardSummary] =
+  useState<DashboardSummaryResponse | null>(null);
+
+const [dashboardSummaryError, setDashboardSummaryError] = useState("");
+useEffect(() => {
+  async function checkApiHealth() {
+    try {
+      const response = await axios.get<ApiHealthResponse>(
+        "http://localhost:7071/api/healthCheck"
+      );
+      
+
+      setApiStatus("online");
+      setApiMessage(response.data.message);
+    } catch {
+  setApiStatus("offline");
+  setApiMessage("Could not connect to the Azure Functions API.");
+}
+  }
+
+  checkApiHealth();
+}, []);
+useEffect(() => {
+  async function loadDashboardSummary() {
+    try {
+      const response = await axios.get<DashboardSummaryResponse>(
+        "http://localhost:7071/api/dashboardSummary"
+      );
+
+      setDashboardSummary(response.data);
+      setDashboardSummaryError("");
+    } catch {
+      setDashboardSummaryError("Dashboard summary unavailable.");
+    }
+  }
+
+  loadDashboardSummary();
+}, []);
+
+const totalRevenueDisplay = dashboardSummary
+  ? new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(dashboardSummary.totalRevenue)
+  : "--";
+
+const serviceCallsDisplay = dashboardSummary
+  ? dashboardSummary.serviceCalls.toString()
+  : "--";
+
+const averageRatingDisplay = dashboardSummary
+  ? dashboardSummary.averageRating.toFixed(1)
+  : "--";
+
+const openRecommendationsDisplay = dashboardSummary
+  ? dashboardSummary.openRecommendations.toString()
+  : "--";
 
   return (
     <Box>
@@ -49,33 +133,37 @@ function Dashboard() {
       >
         <StatCard
           title="Total Revenue"
-          value="$9.3K"
+          value={totalRevenueDisplay}
           helperText="Across completed service calls"
           icon={<AttachMoneyIcon />}
         />
 
         <StatCard
           title="Service Calls"
-          value="8"
+          value={serviceCallsDisplay}
           helperText="Completed and callback jobs"
           icon={<EngineeringIcon />}
         />
 
         <StatCard
-          title="Average Rating"
-          value="4.3"
-          helperText="Across customer reviews"
-          icon={<RateReviewIcon />}
+            title="Average Rating"
+            value={averageRatingDisplay}
+            helperText="Across customer reviews"
+            icon={<RateReviewIcon />}
         />
 
         <StatCard
           title="Open Recommendations"
-          value="5"
+          value={openRecommendationsDisplay}
           helperText="Action items for the team"
           icon={<RecommendIcon />}
         />
       </Box>
-
+{dashboardSummaryError && (
+  <Typography color="error" sx={{ mb: 3 }}>
+    {dashboardSummaryError}
+  </Typography>
+)}
       <Box
         sx={{
           display: "grid",
@@ -176,6 +264,58 @@ function Dashboard() {
         </Card>
 
         <Stack spacing={3}>
+          <Card
+  elevation={0}
+  sx={{
+    border: "1px solid #e5e7eb",
+    borderRadius: 3,
+  }}
+>
+  <CardContent>
+    <Stack
+  direction="row"
+  spacing={1.5}
+  sx={{ alignItems: "center" }}
+>
+      {apiStatus === "online" ? (
+        <CheckCircleIcon color="success" />
+      ) : (
+        <WarningAmberIcon
+  color={apiStatus === "checking" ? "warning" : "error"}
+/>
+      )}
+
+      <Box>
+        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
+          API Status
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary">
+          {apiMessage}
+        </Typography>
+      </Box>
+    </Stack>
+
+    <Chip
+      label={
+        apiStatus === "online"
+          ? "Online"
+          : apiStatus === "checking"
+          ? "Checking"
+          : "Offline"
+      }
+      color={
+        apiStatus === "online"
+          ? "success"
+          : apiStatus === "checking"
+          ? "warning"
+          : "error"
+      }
+      size="small"
+      sx={{ mt: 2 }}
+    />
+  </CardContent>
+</Card>
           <Card
             elevation={0}
             sx={{
