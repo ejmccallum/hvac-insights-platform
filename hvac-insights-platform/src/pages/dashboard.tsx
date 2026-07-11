@@ -17,23 +17,13 @@ import PageHeader from "../components/common/PageHeader";
 import StatCard from "../components/common/StatCard";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import axios from "axios";
 import { useEffect, useState } from "react";
+import {
+  getApiHealth,
+  getDashboardSummary,
+} from "../services/api";
 
-type ApiHealthResponse = {
-  status: string;
-  service: string;
-  message: string;
-  timestamp: string;
-};
-
-type DashboardSummaryResponse = {
-  totalRevenue: number;
-  serviceCalls: number;
-  averageRating: number;
-  openRecommendations: number;
-  lastUpdated: string;
-};
+import type { DashboardSummaryResponse } from "../services/api";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -51,13 +41,10 @@ const [dashboardSummaryError, setDashboardSummaryError] = useState("");
 useEffect(() => {
   async function checkApiHealth() {
     try {
-      const response = await axios.get<ApiHealthResponse>(
-        "http://localhost:7071/api/healthCheck"
-      );
-      
+     const data = await getApiHealth();
 
       setApiStatus("online");
-      setApiMessage(response.data.message);
+      setApiMessage(data.message);
     } catch {
   setApiStatus("offline");
   setApiMessage("Could not connect to the Azure Functions API.");
@@ -69,11 +56,9 @@ useEffect(() => {
 useEffect(() => {
   async function loadDashboardSummary() {
     try {
-      const response = await axios.get<DashboardSummaryResponse>(
-        "http://localhost:7071/api/dashboardSummary"
-      );
+      const data = await getDashboardSummary();
 
-      setDashboardSummary(response.data);
+      setDashboardSummary(data);
       setDashboardSummaryError("");
     } catch {
       setDashboardSummaryError("Dashboard summary unavailable.");
