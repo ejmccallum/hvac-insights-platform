@@ -317,6 +317,58 @@ const openRecommendationsDisplay = dashboardSummary
   </CardContent>
 </Card>
           <Card
+  elevation={0}
+  sx={{
+    border: "1px solid #e5e7eb",
+    borderRadius: 3,
+  }}
+>
+  <CardContent>
+    <Stack
+  direction="row"
+  spacing={1.5}
+  sx={{ alignItems: "center" }}
+>
+      {apiStatus === "online" ? (
+        <CheckCircleIcon color="success" />
+      ) : (
+        <WarningAmberIcon
+  color={apiStatus === "checking" ? "warning" : "error"}
+/>
+      )}
+
+      <Box>
+        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
+          API Status
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary">
+          {apiMessage}
+        </Typography>
+      </Box>
+    </Stack>
+
+    <Chip
+      label={
+        apiStatus === "online"
+          ? "Online"
+          : apiStatus === "checking"
+          ? "Checking"
+          : "Offline"
+      }
+      color={
+        apiStatus === "online"
+          ? "success"
+          : apiStatus === "checking"
+          ? "warning"
+          : "error"
+      }
+      size="small"
+      sx={{ mt: 2 }}
+    />
+  </CardContent>
+</Card>
+          <Card
             elevation={0}
             sx={{
               border: "1px solid #e5e7eb",
