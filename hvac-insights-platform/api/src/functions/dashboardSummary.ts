@@ -21,32 +21,13 @@ export async function dashboardSummary(
 
   try {
     const rows = await queryDatabase<DashboardSummaryRow>(`
-      SELECT
-        COALESCE((
-          SELECT SUM(RevenueAmount)
-          FROM ServiceCalls
-          WHERE IsDeleted = 0
-        ), 0) AS totalRevenue,
-
-        COALESCE((
-          SELECT COUNT(*)
-          FROM ServiceCalls
-          WHERE IsDeleted = 0
-        ), 0) AS serviceCalls,
-
-        COALESCE((
-          SELECT AVG(CAST(Rating AS decimal(10, 2)))
-          FROM REVIEWS
-          WHERE IsDeleted = 0
-        ), 0) AS averageRating,
-
-        COALESCE((
-          SELECT COUNT(*)
-          FROM Recommendations
-          WHERE IsDeleted = 0
-            AND [Status] = 'Open'
-        ), 0) AS openRecommendations;
-    `);
+  SELECT
+    TotalRevenue AS totalRevenue,
+    ServiceCalls AS serviceCalls,
+    AverageRating AS averageRating,
+    OpenRecommendations AS openRecommendations
+  FROM reporting.vwDashboardSummary;
+`);
 
     const summary = rows[0];
 

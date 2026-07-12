@@ -21,9 +21,13 @@ import { useEffect, useState } from "react";
 import {
   getApiHealth,
   getDashboardSummary,
+  getRecentInsights,
 } from "../services/api";
 
-import type { DashboardSummaryResponse } from "../services/api";
+import type {
+  DashboardSummaryResponse,
+  RecentInsight,
+} from "../services/api";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -38,6 +42,10 @@ function Dashboard() {
   useState<DashboardSummaryResponse | null>(null);
 
 const [dashboardSummaryError, setDashboardSummaryError] = useState("");
+
+const [recentInsights, setRecentInsights] = useState<RecentInsight[]>([]);
+const [recentInsightsError, setRecentInsightsError] = useState("");
+
 useEffect(() => {
   async function checkApiHealth() {
     try {
@@ -67,6 +75,21 @@ useEffect(() => {
 
   loadDashboardSummary();
 }, []);
+useEffect(() => {
+  async function loadRecentInsights() {
+    try {
+      const data = await getRecentInsights();
+
+      setRecentInsights(data.insights);
+      setRecentInsightsError("");
+    } catch {
+      setRecentInsightsError("Recent business insights unavailable.");
+    }
+  }
+
+  loadRecentInsights();
+}, []);
+
 
 const totalRevenueDisplay = dashboardSummary
   ? new Intl.NumberFormat("en-US", {
@@ -87,6 +110,37 @@ const averageRatingDisplay = dashboardSummary
 const openRecommendationsDisplay = dashboardSummary
   ? dashboardSummary.openRecommendations.toString()
   : "--";
+
+function getPriorityColor(
+  priority: string
+): "error" | "warning" | "success" | "default" {
+  switch (priority) {
+    case "High":
+      return "error";
+    case "Medium":
+      return "warning";
+    case "Low":
+      return "success";
+    default:
+      return "default";
+  }
+}
+
+function getInsightLabel(insight: RecentInsight) {
+  if (insight.technicianRecognition) {
+    return "Recognition";
+  }
+
+  if (insight.maintenancePlanOpportunity) {
+    return "Maintenance Plan";
+  }
+
+  if (insight.revenueRiskLevel) {
+    return "Revenue Risk";
+  }
+
+  return insight.insightTopic || "Business Insight";
+}
 
   return (
     <Box>
@@ -175,132 +229,64 @@ const openRecommendationsDisplay = dashboardSummary
               AI-style recommendations and operational patterns will appear here.
             </Typography>
 
-            <Stack spacing={2}>
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: "#f8fafc",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                  <Chip label="High Priority" size="small" color="error" />
-                  <Chip label="Callback Risk" size="small" />
-                </Stack>
+            {recentInsightsError && (
+  <Typography color="error" sx={{ mb: 2 }}>
+    {recentInsightsError}
+  </Typography>
+)}
 
-                <Typography sx={{ fontWeight: 700 }}>
-                  Investigate AC repair callback trend
-                </Typography>
+{!recentInsightsError && recentInsights.length === 0 && (
+  <Typography variant="body2" color="text.secondary">
+    No recent business insights found.
+  </Typography>
+)}
 
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  A recent AC repair required a callback. Review technician notes,
-                  parts quality, and customer communication.
-                </Typography>
-              </Box>
+<Stack spacing={2}>
+  {recentInsights.map((insight) => (
+    <Box
+      key={insight.recommendationId}
+      sx={{
+        p: 2,
+        borderRadius: 2,
+        backgroundColor: "#f8fafc",
+        border: "1px solid #e5e7eb",
+      }}
+    >
+      <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap" }}>
+        <Chip
+          label={`${insight.priority} Priority`}
+          size="small"
+          color={getPriorityColor(insight.priority)}
+        />
 
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: "#f8fafc",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                  <Chip label="Opportunity" size="small" color="success" />
-                  <Chip label="Maintenance Plan" size="small" />
-                </Stack>
+        <Chip label={getInsightLabel(insight)} size="small" />
 
-                <Typography sx={{ fontWeight: 700 }}>
-                  Follow up on maintenance plan interest
-                </Typography>
+        {insight.status && (
+          <Chip label={insight.status} size="small" variant="outlined" />
+        )}
+      </Stack>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  A customer mentioned interest in regular maintenance after a duct
-                  cleaning visit.
-                </Typography>
-              </Box>
+      <Typography sx={{ fontWeight: 700 }}>{insight.title}</Typography>
 
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: 2,
-                  backgroundColor: "#f8fafc",
-                  border: "1px solid #e5e7eb",
-                }}
-              >
-                <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                  <Chip label="Recognition" size="small" color="primary" />
-                  <Chip label="Technician Performance" size="small" />
-                </Stack>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {insight.description}
+      </Typography>
 
-                <Typography sx={{ fontWeight: 700 }}>
-                  Recognize strong technician performance
-                </Typography>
-
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Positive customer feedback highlights punctuality, communication,
-                  and strong technical work.
-                </Typography>
-              </Box>
-            </Stack>
+      {(insight.technicianName || insight.locationName) && (
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+          {insight.technicianName && `Technician: ${insight.technicianName}`}
+          {insight.technicianName && insight.locationName && " • "}
+          {insight.locationName && `Location: ${insight.locationName}`}
+        </Typography>
+      )}
+    </Box>
+  ))}
+</Stack>
           </CardContent>
         </Card>
 
         <Stack spacing={3}>
-          <Card
-  elevation={0}
-  sx={{
-    border: "1px solid #e5e7eb",
-    borderRadius: 3,
-  }}
->
-  <CardContent>
-    <Stack
-  direction="row"
-  spacing={1.5}
-  sx={{ alignItems: "center" }}
->
-      {apiStatus === "online" ? (
-        <CheckCircleIcon color="success" />
-      ) : (
-        <WarningAmberIcon
-  color={apiStatus === "checking" ? "warning" : "error"}
-/>
-      )}
-
-      <Box>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-          API Status
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary">
-          {apiMessage}
-        </Typography>
-      </Box>
-    </Stack>
-
-    <Chip
-      label={
-        apiStatus === "online"
-          ? "Online"
-          : apiStatus === "checking"
-          ? "Checking"
-          : "Offline"
-      }
-      color={
-        apiStatus === "online"
-          ? "success"
-          : apiStatus === "checking"
-          ? "warning"
-          : "error"
-      }
-      size="small"
-      sx={{ mt: 2 }}
-    />
-  </CardContent>
-</Card>
+          
           <Card
   elevation={0}
   sx={{

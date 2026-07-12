@@ -19,6 +19,23 @@ export type DashboardSummaryResponse = {
   lastUpdated: string;
 };
 
+export type RecentInsight = {
+  recommendationId: number;
+  title: string;
+  description: string;
+  priority: string;
+  status: string;
+  createdAt: string;
+  insightTopic: string | null;
+  sentiment: string | null;
+  severity: string | null;
+  revenueRiskLevel: string | null;
+  maintenancePlanOpportunity: boolean | null;
+  technicianRecognition: boolean | null;
+  technicianName: string | null;
+  locationName: string | null;
+};
+
 export async function getApiHealth() {
   const response = await apiClient.get<ApiHealthResponse>("/healthCheck");
   return response.data;
@@ -27,6 +44,20 @@ export async function getApiHealth() {
 export async function getDashboardSummary() {
   const response = await apiClient.get<DashboardSummaryResponse>(
     "/dashboardSummary"
+  );
+
+  return response.data;
+}
+
+export type RecentInsightsResponse = {
+  insights: RecentInsight[];
+  count: number;
+  lastUpdated: string;
+};
+
+export async function getRecentInsights() {
+  const response = await apiClient.get<RecentInsightsResponse>(
+    "/recentInsights"
   );
 
   return response.data;
