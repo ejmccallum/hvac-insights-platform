@@ -31,3 +31,4 @@ export async function getDashboardSummary() {
 
   return response.data;
 }
+

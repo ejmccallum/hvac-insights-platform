@@ -5,6 +5,9 @@ import RecommendIcon from "@mui/icons-material/Recommend";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import BarChartIcon from "@mui/icons-material/BarChart";
 import SyncIcon from "@mui/icons-material/Sync";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
@@ -12,17 +15,14 @@ import CardContent from "@mui/material/CardContent";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
+
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import PageHeader from "../components/common/PageHeader";
 import StatCard from "../components/common/StatCard";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { useEffect, useState } from "react";
-import {
-  getApiHealth,
-  getDashboardSummary,
-} from "../services/api";
 
+import { getApiHealth, getDashboardSummary } from "../services/api";
 import type { DashboardSummaryResponse } from "../services/api";
 
 function Dashboard() {
@@ -35,58 +35,62 @@ function Dashboard() {
   const [apiMessage, setApiMessage] = useState("Checking API connection...");
 
   const [dashboardSummary, setDashboardSummary] =
-  useState<DashboardSummaryResponse | null>(null);
+    useState<DashboardSummaryResponse | null>(null);
 
-const [dashboardSummaryError, setDashboardSummaryError] = useState("");
-useEffect(() => {
-  async function checkApiHealth() {
-    try {
-     const data = await getApiHealth();
+  const [dashboardSummaryError, setDashboardSummaryError] = useState("");
 
-      setApiStatus("online");
-      setApiMessage(data.message);
-    } catch {
-  setApiStatus("offline");
-  setApiMessage("Could not connect to the Azure Functions API.");
-}
-  }
+  useEffect(() => {
+    async function checkApiHealth() {
+      try {
+        const data = await getApiHealth();
 
-  checkApiHealth();
-}, []);
-useEffect(() => {
-  async function loadDashboardSummary() {
-    try {
-      const data = await getDashboardSummary();
-
-      setDashboardSummary(data);
-      setDashboardSummaryError("");
-    } catch {
-      setDashboardSummaryError("Dashboard summary unavailable.");
+        setApiStatus("online");
+        setApiMessage(data.message);
+      } catch {
+        setApiStatus("offline");
+        setApiMessage("Could not connect to the Azure Functions API.");
+      }
     }
-  }
 
-  loadDashboardSummary();
-}, []);
+    checkApiHealth();
+  }, []);
 
-const totalRevenueDisplay = dashboardSummary
-  ? new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    }).format(dashboardSummary.totalRevenue)
-  : "--";
+  useEffect(() => {
+    async function loadDashboardSummary() {
+      try {
+        const data = await getDashboardSummary();
 
-const serviceCallsDisplay = dashboardSummary
-  ? dashboardSummary.serviceCalls.toString()
-  : "--";
+        setDashboardSummary(data);
+        setDashboardSummaryError("");
+      } catch (error) {
+        console.error("Failed to load dashboard summary:", error);
+        setDashboardSummary(null);
+        setDashboardSummaryError("Dashboard summary unavailable.");
+      }
+    }
 
-const averageRatingDisplay = dashboardSummary
-  ? dashboardSummary.averageRating.toFixed(1)
-  : "--";
+    loadDashboardSummary();
+  }, []);
 
-const openRecommendationsDisplay = dashboardSummary
-  ? dashboardSummary.openRecommendations.toString()
-  : "--";
+  const totalRevenueDisplay = dashboardSummary
+    ? new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      }).format(Number(dashboardSummary.totalRevenue ?? 0))
+    : "--";
+
+  const serviceCallsDisplay = dashboardSummary
+    ? String(dashboardSummary.serviceCalls ?? 0)
+    : "--";
+
+  const averageRatingDisplay = dashboardSummary
+    ? Number(dashboardSummary.averageRating ?? 0).toFixed(1)
+    : "--";
+
+  const openRecommendationsDisplay = dashboardSummary
+    ? String(dashboardSummary.openRecommendations ?? 0)
+    : "--";
 
   return (
     <Box>
@@ -131,10 +135,10 @@ const openRecommendationsDisplay = dashboardSummary
         />
 
         <StatCard
-            title="Average Rating"
-            value={averageRatingDisplay}
-            helperText="Across customer reviews"
-            icon={<RateReviewIcon />}
+          title="Average Rating"
+          value={averageRatingDisplay}
+          helperText="Across customer reviews"
+          icon={<RateReviewIcon />}
         />
 
         <StatCard
@@ -144,11 +148,13 @@ const openRecommendationsDisplay = dashboardSummary
           icon={<RecommendIcon />}
         />
       </Box>
-{dashboardSummaryError && (
-  <Typography color="error" sx={{ mb: 3 }}>
-    {dashboardSummaryError}
-  </Typography>
-)}
+
+      {dashboardSummaryError && (
+        <Typography color="error" sx={{ mb: 3 }}>
+          {dashboardSummaryError}
+        </Typography>
+      )}
+
       <Box
         sx={{
           display: "grid",
@@ -171,7 +177,11 @@ const openRecommendationsDisplay = dashboardSummary
               Recent Business Insights
             </Typography>
 
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ mt: 0.5, mb: 2 }}
+            >
               AI-style recommendations and operational patterns will appear here.
             </Typography>
 
@@ -193,9 +203,13 @@ const openRecommendationsDisplay = dashboardSummary
                   Investigate AC repair callback trend
                 </Typography>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  A recent AC repair required a callback. Review technician notes,
-                  parts quality, and customer communication.
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 0.5 }}
+                >
+                  A recent AC repair required a callback. Review technician
+                  notes, parts quality, and customer communication.
                 </Typography>
               </Box>
 
@@ -216,9 +230,13 @@ const openRecommendationsDisplay = dashboardSummary
                   Follow up on maintenance plan interest
                 </Typography>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  A customer mentioned interest in regular maintenance after a duct
-                  cleaning visit.
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 0.5 }}
+                >
+                  A customer mentioned interest in regular maintenance after a
+                  duct cleaning visit.
                 </Typography>
               </Box>
 
@@ -239,9 +257,13 @@ const openRecommendationsDisplay = dashboardSummary
                   Recognize strong technician performance
                 </Typography>
 
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  Positive customer feedback highlights punctuality, communication,
-                  and strong technical work.
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mt: 0.5 }}
+                >
+                  Positive customer feedback highlights punctuality,
+                  communication, and strong technical work.
                 </Typography>
               </Box>
             </Stack>
@@ -250,109 +272,58 @@ const openRecommendationsDisplay = dashboardSummary
 
         <Stack spacing={3}>
           <Card
-  elevation={0}
-  sx={{
-    border: "1px solid #e5e7eb",
-    borderRadius: 3,
-  }}
->
-  <CardContent>
-    <Stack
-  direction="row"
-  spacing={1.5}
-  sx={{ alignItems: "center" }}
->
-      {apiStatus === "online" ? (
-        <CheckCircleIcon color="success" />
-      ) : (
-        <WarningAmberIcon
-  color={apiStatus === "checking" ? "warning" : "error"}
-/>
-      )}
+            elevation={0}
+            sx={{
+              border: "1px solid #e5e7eb",
+              borderRadius: 3,
+            }}
+          >
+            <CardContent>
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
+                {apiStatus === "online" ? (
+                  <CheckCircleIcon color="success" />
+                ) : (
+                  <WarningAmberIcon
+                    color={apiStatus === "checking" ? "warning" : "error"}
+                  />
+                )}
 
-      <Box>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-          API Status
-        </Typography>
+                <Box>
+                  <Typography
+                    variant="h6"
+                    component="h2"
+                    sx={{ fontWeight: 700 }}
+                  >
+                    API Status
+                  </Typography>
 
-        <Typography variant="body2" color="text.secondary">
-          {apiMessage}
-        </Typography>
-      </Box>
-    </Stack>
+                  <Typography variant="body2" color="text.secondary">
+                    {apiMessage}
+                  </Typography>
+                </Box>
+              </Stack>
 
-    <Chip
-      label={
-        apiStatus === "online"
-          ? "Online"
-          : apiStatus === "checking"
-          ? "Checking"
-          : "Offline"
-      }
-      color={
-        apiStatus === "online"
-          ? "success"
-          : apiStatus === "checking"
-          ? "warning"
-          : "error"
-      }
-      size="small"
-      sx={{ mt: 2 }}
-    />
-  </CardContent>
-</Card>
-          <Card
-  elevation={0}
-  sx={{
-    border: "1px solid #e5e7eb",
-    borderRadius: 3,
-  }}
->
-  <CardContent>
-    <Stack
-  direction="row"
-  spacing={1.5}
-  sx={{ alignItems: "center" }}
->
-      {apiStatus === "online" ? (
-        <CheckCircleIcon color="success" />
-      ) : (
-        <WarningAmberIcon
-  color={apiStatus === "checking" ? "warning" : "error"}
-/>
-      )}
+              <Chip
+                label={
+                  apiStatus === "online"
+                    ? "Online"
+                    : apiStatus === "checking"
+                    ? "Checking"
+                    : "Offline"
+                }
+                color={
+                  apiStatus === "online"
+                    ? "success"
+                    : apiStatus === "checking"
+                    ? "warning"
+                    : "error"
+                }
+                size="small"
+                sx={{ mt: 2 }}
+              />
+            </CardContent>
+          </Card>
 
-      <Box>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-          API Status
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary">
-          {apiMessage}
-        </Typography>
-      </Box>
-    </Stack>
-
-    <Chip
-      label={
-        apiStatus === "online"
-          ? "Online"
-          : apiStatus === "checking"
-          ? "Checking"
-          : "Offline"
-      }
-      color={
-        apiStatus === "online"
-          ? "success"
-          : apiStatus === "checking"
-          ? "warning"
-          : "error"
-      }
-      size="small"
-      sx={{ mt: 2 }}
-    />
-  </CardContent>
-</Card>
           <Card
             elevation={0}
             sx={{
