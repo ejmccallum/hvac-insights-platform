@@ -36,6 +36,14 @@ export type RecentInsight = {
   locationName: string | null;
 };
 
+export type CreateUploadSasResponse = {
+  status: string;
+  blobName: string;
+  containerName: string;
+  uploadUrl: string;
+  expiresOn: string;
+};
+
 export async function getApiHealth() {
   const response = await apiClient.get<ApiHealthResponse>("/healthCheck");
   return response.data;
@@ -62,3 +70,16 @@ export async function getRecentInsights() {
 
   return response.data;
 }
+
+export async function createUploadSas(fileName: string, contentType: string) {
+  const response = await apiClient.post<CreateUploadSasResponse>(
+    "/createUploadSas",
+    {
+      fileName,
+      contentType,
+    }
+  );
+
+  return response.data;
+}
+

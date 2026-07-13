@@ -1,338 +1,179 @@
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import ErrorIcon from "@mui/icons-material/Error";
-import InfoIcon from "@mui/icons-material/Info";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Chip from "@mui/material/Chip";
-import Alert from "@mui/material/Alert";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { useState } from "react";
+import type { ChangeEvent } from "react";
 import PageHeader from "../components/common/PageHeader";
-
-type UploadStatus = "idle" | "selected" | "uploading" | "success" | "error";
+import { createUploadSas } from "../services/api";
 
 function UploadData() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
-  const [progress, setProgress] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
 
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+  const [uploadStatus, setUploadStatus] = useState<
+    "idle" | "uploading" | "success" | "error"
+  >("idle");
+
+  const [message, setMessage] = useState("");
+
+  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    const isCsvFile = file.name.toLowerCase().endsWith(".csv");
-
-    if (!isCsvFile) {
+    if (!file.name.toLowerCase().endsWith(".csv")) {
       setSelectedFile(null);
       setUploadStatus("error");
-      setErrorMessage("Please select a CSV file.");
+      setMessage("Only CSV files are allowed.");
       return;
     }
 
     setSelectedFile(file);
-    setUploadStatus("selected");
-    setProgress(0);
-    setErrorMessage("");
+    setUploadStatus("idle");
+    setMessage("");
   }
 
   async function handleUpload() {
     if (!selectedFile) {
       setUploadStatus("error");
-      setErrorMessage("Please choose a CSV file before uploading.");
+      setMessage("Please select a CSV file first.");
       return;
     }
 
-    setUploadStatus("uploading");
-    setProgress(0);
-    setErrorMessage("");
+    try {
+      setUploadStatus("uploading");
+      setMessage("Requesting secure upload URL...");
 
-    for (let value = 20; value <= 100; value += 20) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setProgress(value);
+      const sasResponse = await createUploadSas(
+        selectedFile.name,
+        selectedFile.type || "text/csv"
+      );
+
+      setMessage("Uploading file to Azure Blob Storage...");
+
+      const uploadResponse = await fetch(sasResponse.uploadUrl, {
+        method: "PUT",
+        headers: {
+          "x-ms-blob-type": "BlockBlob",
+          "Content-Type": selectedFile.type || "text/csv",
+        },
+        body: selectedFile,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Blob upload failed.");
+      }
+
+      setUploadStatus("success");
+      setMessage(`Upload complete. Blob saved as ${sasResponse.blobName}`);
+    } catch {
+      setUploadStatus("error");
+      setMessage("Upload failed. Check the API terminal and browser console.");
     }
-
-    setUploadStatus("success");
-  }
-
-  function handleClearFile() {
-    setSelectedFile(null);
-    setUploadStatus("idle");
-    setProgress(0);
-    setErrorMessage("");
   }
 
   return (
     <Box>
       <PageHeader
         title="Upload Data"
-        subtitle="Upload HVAC service data, reviews, and operational files for processing."
+        subtitle="Upload HVAC business CSV files into Azure Blob Storage for processing."
       />
 
-      <Box
+      <Card
+        elevation={0}
         sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            lg: "2fr 1fr",
-          },
-          gap: 3,
+          border: "1px solid #e5e7eb",
+          borderRadius: 3,
+          maxWidth: 720,
         }}
       >
-        <Stack spacing={3}>
-          <Card
-            elevation={0}
-            sx={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 3,
-            }}
-          >
-            <CardContent>
-              <Stack spacing={2.5}>
-                <Box>
-                  <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-                    Upload CSV File
-                  </Typography>
-
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Choose a CSV export from ServiceTitan, Housecall Pro, Jobber, or another HVAC system.
-                  </Typography>
-                </Box>
-
-                <Box
-                  sx={{
-                    border: "2px dashed #cbd5e1",
-                    borderRadius: 3,
-                    p: 4,
-                    textAlign: "center",
-                    backgroundColor: "#f8fafc",
-                  }}
-                >
-                  <CloudUploadIcon sx={{ fontSize: 48, color: "#2563eb", mb: 1 }} />
-
-                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Select a CSV file
-                  </Typography>
-
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                    CSV files only. Later this will upload to Azure Blob Storage.
-                  </Typography>
-
-                  <Button variant="contained" component="label" startIcon={<CloudUploadIcon />}>
-                    Choose File
-                    <input
-                      type="file"
-                      accept=".csv,text/csv"
-                      hidden
-                      onChange={handleFileChange}
-                    />
-                  </Button>
-                </Box>
-
-                {selectedFile && (
-                  <Box
-                    sx={{
-                      p: 2,
-                      borderRadius: 2,
-                      border: "1px solid #e5e7eb",
-                      backgroundColor: "#ffffff",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 2,
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                      <InsertDriveFileIcon sx={{ color: "#2563eb" }} />
-
-                      <Box>
-                        <Typography sx={{ fontWeight: 700 }}>{selectedFile.name}</Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {(selectedFile.size / 1024).toFixed(1)} KB
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Button variant="text" color="inherit" onClick={handleClearFile}>
-                      Clear
-                    </Button>
-                  </Box>
-                )}
-
-                {uploadStatus === "uploading" && (
-                  <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                      Uploading and validating file...
-                    </Typography>
-                    <LinearProgress variant="determinate" value={progress} />
-                  </Box>
-                )}
-
-                {uploadStatus === "success" && (
-                  <Alert icon={<CheckCircleIcon />} severity="success">
-                    File uploaded successfully. In the next phase, this will trigger Azure processing.
-                  </Alert>
-                )}
-
-                {uploadStatus === "error" && (
-                  <Alert icon={<ErrorIcon />} severity="error">
-                    {errorMessage}
-                  </Alert>
-                )}
-
-                <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                  <Button variant="outlined" onClick={handleClearFile}>
-                    Reset
-                  </Button>
-
-                  <Button
-                    variant="contained"
-                    startIcon={<CloudUploadIcon />}
-                    onClick={handleUpload}
-                    disabled={uploadStatus === "uploading"}
-                  >
-                    Upload File
-                  </Button>
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Card
-            elevation={0}
-            sx={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 3,
-            }}
-          >
-            <CardContent>
+        <CardContent>
+          <Stack spacing={3}>
+            <Box>
               <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-                Recent Uploads
+                CSV Upload
               </Typography>
 
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, mb: 2 }}>
-                This will eventually come from the UploadHistory table.
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.5 }}
+              >
+                Select a CSV file. The app will request a temporary upload URL
+                from the API, then upload the file directly to Azure Blob
+                Storage.
               </Typography>
+            </Box>
 
-              <Stack spacing={1.5}>
-                <Box
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    border: "1px solid #e5e7eb",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 2,
-                  }}
-                >
-                  <Box>
-                    <Typography sx={{ fontWeight: 700 }}>
-                      MileHighHVAC_ServiceTitan_Demo_Export.csv
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Uploaded 35 minutes ago
-                    </Typography>
-                  </Box>
+            <Button
+              variant="outlined"
+              component="label"
+              startIcon={<InsertDriveFileIcon />}
+              disabled={uploadStatus === "uploading"}
+            >
+              Choose CSV File
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                hidden
+                onChange={handleFileChange}
+              />
+            </Button>
 
-                  <Chip label="Processed" color="success" size="small" />
-                </Box>
+            {selectedFile && (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  backgroundColor: "#f8fafc",
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                <Typography sx={{ fontWeight: 700 }}>
+                  {selectedFile.name}
+                </Typography>
 
-                <Box
-                  sx={{
-                    p: 2,
-                    borderRadius: 2,
-                    border: "1px solid #e5e7eb",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 2,
-                  }}
-                >
-                  <Box>
-                    <Typography sx={{ fontWeight: 700 }}>
-                      sample_reviews_import.csv
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Demo placeholder
-                    </Typography>
-                  </Box>
-
-                  <Chip label="Ready" color="primary" size="small" />
-                </Box>
-              </Stack>
-            </CardContent>
-          </Card>
-        </Stack>
-
-        <Stack spacing={3}>
-          <Card
-            elevation={0}
-            sx={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 3,
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                <InfoIcon sx={{ color: "#2563eb" }} />
-                <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-                  Expected CSV Format
+                <Typography variant="body2" color="text.secondary">
+                  {(selectedFile.size / 1024).toFixed(1)} KB
                 </Typography>
               </Box>
+            )}
 
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                For the MVP, we will start with service call and review data.
+            {uploadStatus === "uploading" && <LinearProgress />}
+
+            {message && (
+              <Typography
+                variant="body2"
+                color={
+                  uploadStatus === "error"
+                    ? "error"
+                    : uploadStatus === "success"
+                    ? "success.main"
+                    : "text.secondary"
+                }
+              >
+                {message}
               </Typography>
+            )}
 
-              <Stack spacing={1}>
-                <Chip label="Customer Name" />
-                <Chip label="Technician Name" />
-                <Chip label="Service Type" />
-                <Chip label="Job Status" />
-                <Chip label="Revenue Amount" />
-                <Chip label="Review Rating" />
-                <Chip label="Review Text" />
-              </Stack>
-            </CardContent>
-          </Card>
-
-          <Card
-            elevation={0}
-            sx={{
-              border: "1px solid #e5e7eb",
-              borderRadius: 3,
-            }}
-          >
-            <CardContent>
-              <Typography variant="h6" component="h2" sx={{ fontWeight: 700 }}>
-                Upload Pipeline
-              </Typography>
-
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                This page is currently front-end only. Next, we will connect it to Azure Blob Storage.
-              </Typography>
-
-              <Stack spacing={1.5} sx={{ mt: 2 }}>
-                <Chip label="1. Select CSV" color="primary" />
-                <Chip label="2. Upload to Blob Storage" />
-                <Chip label="3. Trigger Azure Function" />
-                <Chip label="4. Validate and insert into SQL" />
-                <Chip label="5. Refresh Power BI report" />
-              </Stack>
-            </CardContent>
-          </Card>
-        </Stack>
-      </Box>
+            <Button
+              variant="contained"
+              startIcon={<CloudUploadIcon />}
+              onClick={handleUpload}
+              disabled={!selectedFile || uploadStatus === "uploading"}
+            >
+              Upload to Azure Blob Storage
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
     </Box>
   );
 }
