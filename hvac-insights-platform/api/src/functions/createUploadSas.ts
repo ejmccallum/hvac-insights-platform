@@ -5,6 +5,7 @@ import {
   InvocationContext,
 } from "@azure/functions";
 import { createUploadSasUrl } from "../services/blobStorage";
+import { createUploadHistoryRecord } from "../services/uploadHistory";
 
 type CreateUploadSasRequest = {
   fileName?: string;
@@ -57,10 +58,17 @@ export async function createUploadSas(
       body.contentType
     );
 
+    const uploadHistory = await createUploadHistoryRecord({
+  fileName: body.fileName,
+  blobName: sasResult.blobName,
+  fileType: "CSV",
+});
+
     return {
       status: 200,
       jsonBody: {
         status: "ok",
+        uploadId: uploadHistory.uploadId,
         ...sasResult,
       },
     };

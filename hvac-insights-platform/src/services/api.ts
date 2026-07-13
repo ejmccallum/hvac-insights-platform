@@ -4,11 +4,13 @@ const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
-export type ApiHealthResponse = {
+export type CreateUploadSasResponse = {
   status: string;
-  service: string;
-  message: string;
-  timestamp: string;
+  uploadId: string;
+  blobName: string;
+  containerName: string;
+  uploadUrl: string;
+  expiresOn: string;
 };
 
 export type DashboardSummaryResponse = {
@@ -36,18 +38,17 @@ export type RecentInsight = {
   locationName: string | null;
 };
 
-export type CreateUploadSasResponse = {
-  status: string;
-  blobName: string;
-  containerName: string;
-  uploadUrl: string;
-  expiresOn: string;
-};
-
 export async function getApiHealth() {
   const response = await apiClient.get<ApiHealthResponse>("/healthCheck");
   return response.data;
 }
+
+export type ApiHealthResponse = {
+  status: string;
+  service: string;
+  message: string;
+  timestamp: string;
+};
 
 export async function getDashboardSummary() {
   const response = await apiClient.get<DashboardSummaryResponse>(
@@ -83,3 +84,10 @@ export async function createUploadSas(fileName: string, contentType: string) {
   return response.data;
 }
 
+export async function completeUpload(uploadId: string) {
+  const response = await apiClient.post("/completeUpload", {
+    uploadId,
+  });
+
+  return response.data;
+}

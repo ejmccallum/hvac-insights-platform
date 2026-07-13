@@ -10,7 +10,7 @@ import Typography from "@mui/material/Typography";
 import { useState } from "react";
 import type { ChangeEvent } from "react";
 import PageHeader from "../components/common/PageHeader";
-import { createUploadSas } from "../services/api";
+import { completeUpload, createUploadSas } from "../services/api";
 
 function UploadData() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -67,12 +67,16 @@ function UploadData() {
         body: selectedFile,
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Blob upload failed.");
-      }
+    if (!uploadResponse.ok) {
+  throw new Error("Blob upload failed.");
+}
 
-      setUploadStatus("success");
-      setMessage(`Upload complete. Blob saved as ${sasResponse.blobName}`);
+setMessage("Recording upload in history...");
+
+await completeUpload(sasResponse.uploadId);
+
+setUploadStatus("success");
+setMessage(`Upload complete. Blob saved as ${sasResponse.blobName}`);
     } catch {
       setUploadStatus("error");
       setMessage("Upload failed. Check the API terminal and browser console.");
